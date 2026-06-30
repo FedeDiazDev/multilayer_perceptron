@@ -21,6 +21,7 @@ def train_model():
 
     procesador.pre_process()
     procesador.split(train_size=0.8)
+    procesador.save_splits() 
     procesador.normalize() 
     np.save(resolve_path("scaling_params.npy"), {'mu': procesador.mu, 'sigma': procesador.sigma})
 

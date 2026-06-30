@@ -22,7 +22,12 @@ class DatasetProcessor():
             'compactness_worst', 'concavity_worst', 'concave_points_worst', 
             'symmetry_worst', 'fractal_dimension_worst'
         ]
-        self.df = pd.read_csv(path, names=self.headers, header=0)
+        resolved_path = os.path.abspath(os.path.join(os.path.dirname(__file__), path)) if not os.path.isabs(path) else path
+        temp_df = pd.read_csv(resolved_path, nrows=1)
+        if temp_df.shape[1] == 31:
+            self.df = pd.read_csv(resolved_path)
+        else:
+            self.df = pd.read_csv(resolved_path, names=self.headers, header=0)
         self.X_train, self.X_val = None, None
         self.y_train, self.y_val = None, None
 
@@ -30,7 +35,9 @@ class DatasetProcessor():
         if 'ID' in self.df.columns:
             self.df = self.df.drop(columns=['ID'])
         self.df = self.df.dropna(axis=1, how='all')
-        self.df['target'] = self.df['target'].map({'M': 1, 'B': 0})
+        if 'target' in self.df.columns:
+            if self.df['target'].dtype == object:
+                self.df['target'] = self.df['target'].map({'M': 1, 'B': 0})
         self.df = self.df.dropna()
 
     def split(self, train_size=0.8):
@@ -73,12 +80,12 @@ class DatasetProcessor():
     def save_splits(self, train_path="../data/train.csv", test_path="../data/test.csv"):
         if not hasattr(self, 'train_df') or not hasattr(self, 'val_df'):
             raise RuntimeError("Primero ejecuta split() antes de guardar train/test")
-        train_path = resolve_path(train_path)
-        test_path = resolve_path(test_path)
-        os.makedirs(os.path.dirname(train_path), exist_ok=True)
-        os.makedirs(os.path.dirname(test_path), exist_ok=True)
-        self.train_df.to_csv(train_path, index=False)
-        self.val_df.to_csv(test_path, index=False)
+        resolved_train = os.path.abspath(os.path.join(os.path.dirname(__file__), train_path)) if not os.path.isabs(train_path) else train_path
+        resolved_test = os.path.abspath(os.path.join(os.path.dirname(__file__), test_path)) if not os.path.isabs(test_path) else test_path
+        os.makedirs(os.path.dirname(resolved_train), exist_ok=True)
+        os.makedirs(os.path.dirname(resolved_test), exist_ok=True)
+        self.train_df.to_csv(resolved_train, index=False)
+        self.val_df.to_csv(resolved_test, index=False)
 
 
 if __name__ == "__main__":

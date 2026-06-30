@@ -99,63 +99,68 @@ Calculates the gradient of the loss function with respect to weights and biases:
 
 ---
 
-## 📂 Project Structure & Script Workflow
+## 📂 Project Structure
 
-The project currently revolves around two executable entry points and one data helper:
+This diagram lists only the tracked source files of the repository:
 
 ```text
 ├── src/
-│   ├── handle_data.py      # Dataset loading, cleaning, splitting and normalization
-│   ├── multilayer_perceptron.py
-│   ├── train.py            # Trains the MLP, stores scaling params and saves the model
-│   └── predict.py          # Loads the model and evaluates predictions
+│   ├── handle_data.py          # Dataset loading, cleaning, splitting and normalization
+│   ├── multilayer_perceptron.py # Class containing the neural network logic
+│   ├── train.py                # Trains the MLP, saves the model weights and scaling params
+│   └── predict.py              # Loads the model and runs predictions on data
 ├── data/
-│   └── data.csv            # Wisconsin Breast Cancer Dataset (required input)
-├── modelo_tfm.npy          # Saved model generated after training
-├── scaling_params.npy      # Normalization parameters generated after training
-├── resultados_entrenamiento.png
+│   └── data.csv                # Wisconsin Breast Cancer Dataset (required input)
 └── README.md
 ```
+
+> [!TIP]
+> Los archivos resultantes de la ejecución (como los pesos guardados en `.npy`, las particiones de datos `.csv` adicionales y los gráficos `.png`) se generan de manera dinámica y se omiten de la estructura del repositorio mediante `.gitignore`.
 
 ---
 
 ## 🚀 Execution & Usage
 
-### 1. Prepare the dataset
-The scripts expect the Wisconsin Breast Cancer CSV at `data/data.csv`.
-If the file is not already present in the repository, place it there or adjust the hardcoded path in `src/train.py` and the default path in `src/predict.py`.
+Todos los scripts cuentan con resolución de rutas dinámica, lo que permite ejecutarlos desde cualquier directorio de consola (por ejemplo, desde la raíz del proyecto).
 
-### 2. Train the network
-Training performs its own preprocessing, 80/20 split and normalization internally. Because `src/train.py` uses relative paths, run it from the `src/` directory:
+### 1. Preparar el Dataset
+El script principal requiere el archivo CSV original en la ruta `data/data.csv`.
+
+### 2. Entrenar el Modelo
+Para iniciar el proceso de entrenamiento y generar los subconjuntos físicos de entrenamiento y prueba, ejecuta desde la raíz:
 ```bash
-cd src
-python3 train.py
+python3 src/train.py
+```
+Este script dividirá los datos y guardará automáticamente en el disco:
+*   `data/train.csv` y `data/test.csv` (particiones físicas de datos)
+*   `src/modelo_tfm.npy` (pesos y sesgos entrenados)
+*   `src/scaling_params.npy` (media y desviación estándar para escalado Z-Score)
+*   `src/resultados_entrenamiento.png` (gráfico con la evolución del entrenamiento)
+
+### 3. Ejecutar Predicciones sobre el Conjunto de Pruebas
+Para evaluar el rendimiento real del modelo entrenado usando datos nuevos e independientes (datos de prueba no vistos), ejecuta desde la raíz:
+```bash
+python3 src/predict.py --data ../data/test.csv
 ```
 
-The training script saves three artifacts in the current working directory:
-`modelo_tfm.npy`, `scaling_params.npy` and `resultados_entrenamiento.png`.
+> [!NOTE]
+> Se especifica `--data ../data/test.csv` debido a que `predict.py` busca el archivo de forma relativa a su propia ubicación dentro de `src/`.
 
-### 3. Run predictions
-`src/predict.py` can be run with no flags thanks to its defaults, but it also accepts `--data`, `--model` and `--scaling` if you want to override them:
+### 4. Exploración y visualización opcional de los datos
+Puedes ejecutar el script de carga directamente para limpiar datos, realizar un split en memoria y guardar las gráficas de exploración de datos iniciales:
 ```bash
-cd src
-python3 predict.py
+python3 src/handle_data.py
 ```
-
-If you want to evaluate a different CSV or model, pass the flags explicitly. With the defaults, the script loads `../data/data.csv`, `modelo_tfm.npy` and `scaling_params.npy` from `src/`.
-
-### 4. Optional data exploration
-`src/handle_data.py` can be run directly to inspect the cleaned dataset, generate distribution/correlation plots and persist train/validation splits.
 
 ---
 
 ## 📈 Learning Curves & Metrics
 
-At the end of the training phase, the program generates two validation graphs:
-1.  **Loss Curve:** Training loss vs. Validation loss over epochs (useful for identifying overfitting and showing the convergence path).
-2.  **Accuracy Curve:** Generalization accuracy on unknown examples.
+Al finalizar el entrenamiento, el programa genera dos gráficas de evolución:
+1.  **Loss Curve:** Comparativa de la pérdida entre entrenamiento y validación para vigilar el comportamiento de sobreajuste (overfitting).
+2.  **Accuracy Curve:** Evolución de la exactitud de clasificación a lo largo de las épocas.
 
-Evaluations include:
+Las evaluaciones del modelo se calculan usando:
 *   **Binary Cross-Entropy Loss:**
     $$E = -\frac{1}{N} \sum_{n=1}^{N} \left[ y_n \log(p_n) + (1 - y_n) \log(1 - p_n) \right]$$
-*   **F1-Score, Precision, and Recall:** To evaluate predictions objectively on unbalanced classification boundaries.
+*   **Matriz de Confusión, F1-Score, Precisión y Recall:** Para calificar objetivamente la capacidad diagnóstica del modelo.

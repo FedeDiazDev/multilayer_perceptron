@@ -4,6 +4,11 @@ import seaborn as sns
 import numpy as np
 import os
 
+def resolve_path(path):
+    if os.path.isabs(path):
+        return path
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), path))
+
 class DatasetProcessor():
     def __init__(self, path):
         self.headers = [
@@ -45,13 +50,13 @@ class DatasetProcessor():
         sns.countplot(x='target', data=self.df)
         plt.title("Distribución de Diagnósticos (0: Benigno, 1: Maligno)")
         plt.tight_layout()
-        plt.savefig("distribution.png")
+        plt.savefig(resolve_path("distribution.png"))
 
         plt.figure(figsize=(12, 10))
         sns.heatmap(self.df.corr(), annot=True, cmap='coolwarm')
         plt.title("Matriz de Correlación de Características")
         plt.tight_layout()
-        plt.savefig("correlation.png")
+        plt.savefig(resolve_path("correlation.png"))
 
     def normalize(self):
         if self.X_train is None or self.X_val is None:
@@ -68,6 +73,8 @@ class DatasetProcessor():
     def save_splits(self, train_path="../data/train.csv", test_path="../data/test.csv"):
         if not hasattr(self, 'train_df') or not hasattr(self, 'val_df'):
             raise RuntimeError("Primero ejecuta split() antes de guardar train/test")
+        train_path = resolve_path(train_path)
+        test_path = resolve_path(test_path)
         os.makedirs(os.path.dirname(train_path), exist_ok=True)
         os.makedirs(os.path.dirname(test_path), exist_ok=True)
         self.train_df.to_csv(train_path, index=False)
@@ -75,25 +82,30 @@ class DatasetProcessor():
 
 
 if __name__ == "__main__":
-    procesador = DatasetProcessor("../data/data.csv")
-    print(f"Columnas originales: {procesador.df.columns[:3]}...") 
-    
-    # Ejecutar limpieza y renombrado
-    procesador.pre_process()
-    
-    # YA NO USAMOS [1], USAMOS ['target'] porque ya se ha renombrado
-    print("Mapeo realizado. Valores únicos:", procesador.df['target'].unique()) 
-    
-    procesador.visualize()
-    
-    # Ejecutar división
-    procesador.split(train_size=0.8)
-    procesador.save_splits()
-    
-    # AHORA SÍ: Normalizar
-    procesador.normalize()
-    
-    # Comprobar resultados finales
-    print(f"Total registros: {len(procesador.df)}")
-    print(f"X_train_scaled shape: {procesador.X_train.shape}")
-    print(f"y_train shape: {procesador.y_train.shape}")
+    import sys
+    try:
+        procesador = DatasetProcessor(resolve_path("../data/data.csv"))
+        print(f"Columnas originales: {procesador.df.columns[:3]}...") 
+        
+        # Ejecutar limpieza y renombrado
+        procesador.pre_process()
+        
+        # YA NO USAMOS [1], USAMOS ['target'] porque ya se ha renombrado
+        print("Mapeo realizado. Valores únicos:", procesador.df['target'].unique()) 
+        
+        procesador.visualize()
+        
+        # Ejecutar división
+        procesador.split(train_size=0.8)
+        procesador.save_splits()
+        
+        # AHORA SÍ: Normalizar
+        procesador.normalize()
+        
+        # Comprobar resultados finales
+        print(f"Total registros: {len(procesador.df)}")
+        print(f"X_train_scaled shape: {procesador.X_train.shape}")
+        print(f"y_train shape: {procesador.y_train.shape}")
+    except (FileNotFoundError, PermissionError) as e:
+        print(f"Error al abrir el dataset: {e}", file=sys.stderr)
+        sys.exit(1)

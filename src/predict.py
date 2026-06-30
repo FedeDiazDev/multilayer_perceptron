@@ -184,8 +184,8 @@ def main():
     args = build_parser().parse_args()
     try:
         run_prediction(args.data, args.model, args.scaling)
-    except FileNotFoundError as error:
-        print(error, file=sys.stderr)
+    except (FileNotFoundError, PermissionError) as error:
+        print(f"Error: {error}", file=sys.stderr)
         raise SystemExit(1)
 
 

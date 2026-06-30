@@ -1,16 +1,28 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import os
+import sys
 from handle_data import DatasetProcessor
 from multilayer_perceptron import MultilayerPerceptron
 
 np.random.seed(42)
 
+def resolve_path(path):
+    if os.path.isabs(path):
+        return path
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), path))
+
 def train_model():
-    procesador = DatasetProcessor("../data/data.csv")
+    try:
+        procesador = DatasetProcessor(resolve_path("../data/data.csv"))
+    except (FileNotFoundError, PermissionError) as e:
+        print(f"Error al abrir el dataset: {e}", file=sys.stderr)
+        sys.exit(1)
+
     procesador.pre_process()
     procesador.split(train_size=0.8)
     procesador.normalize() 
-    np.save("scaling_params.npy", {'mu': procesador.mu, 'sigma': procesador.sigma})
+    np.save(resolve_path("scaling_params.npy"), {'mu': procesador.mu, 'sigma': procesador.sigma})
 
     dims = [30, 16, 16, 2]
     epochs = 2000
@@ -69,7 +81,7 @@ def train_model():
 
     # Guardar modelo con configuración
     config = {'architecture': dims, 'epochs_run': len(mlp.history['loss']), 'learning_rate': lr, 'best_val_loss': best_val_loss}
-    mlp.save_model("modelo_tfm.npy", config=config)
+    mlp.save_model(resolve_path("modelo_tfm.npy"), config=config)
     print("Entrenamiento finalizado y modelo guardado.")
     
     plot_results(mlp.history)
@@ -93,7 +105,7 @@ def plot_results(history):
     plt.legend()
     
     plt.tight_layout()
-    plt.savefig("resultados_entrenamiento.png")
+    plt.savefig(resolve_path("resultados_entrenamiento.png"))
     plt.show()
 
 if __name__ == "__main__":

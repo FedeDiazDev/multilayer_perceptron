@@ -101,20 +101,19 @@ Calculates the gradient of the loss function with respect to weights and biases:
 
 ## 📂 Project Structure & Script Workflow
 
-The project is divided into three distinct phases to replicate professional ML deployment:
+The project currently revolves around two executable entry points and one data helper:
 
 ```text
-├── data/
-│   └── data.csv            # Wisconsin Breast Cancer Dataset (Raw)
 ├── src/
-│   ├── split.py            # Phase 1: Separates data into train/validation sets
-│   ├── train.py            # Phase 2: Performs MLP training, validation, and saves model
-│   ├── predict.py          # Phase 3: Loads model, predicts new cases, evaluates loss
-│   └── utils/
-│       ├── activations.py  # Sigmoid, Softmax, ReLU, and their derivatives
-│       ├── optimizers.py   # SGD, Momentum, Adam optimizers
-│       └── metrics.py      # Binary cross-entropy, Accuracy, F1-score
-├── saved_model.json        # Serialized weights, biases, and network topology
+│   ├── handle_data.py      # Dataset loading, cleaning, splitting and normalization
+│   ├── multilayer_perceptron.py
+│   ├── train.py            # Trains the MLP, stores scaling params and saves the model
+│   └── predict.py          # Loads the model and evaluates predictions
+├── data/
+│   └── data.csv            # Wisconsin Breast Cancer Dataset (required input)
+├── modelo_tfm.npy          # Saved model generated after training
+├── scaling_params.npy      # Normalization parameters generated after training
+├── resultados_entrenamiento.png
 └── README.md
 ```
 
@@ -122,23 +121,31 @@ The project is divided into three distinct phases to replicate professional ML d
 
 ## 🚀 Execution & Usage
 
-### 1. Data Splitting
-Partitions the dataset into training ($80\%$) and validation ($20\%$) sets:
+### 1. Prepare the dataset
+The scripts expect the Wisconsin Breast Cancer CSV at `data/data.csv`.
+If the file is not already present in the repository, place it there or adjust the hardcoded path in `src/train.py` and the default path in `src/predict.py`.
+
+### 2. Train the network
+Training performs its own preprocessing, 80/20 split and normalization internally. Because `src/train.py` uses relative paths, run it from the `src/` directory:
 ```bash
-python src/split.py --dataset data/data.csv --train-ratio 0.8 --seed 42
+cd src
+python3 train.py
 ```
 
-### 2. Training the Neural Network
-Trains the MLP using custom hyperparameters. Saves the network's final parameters to `saved_model.json` and outputs learning curve plots (Loss/Accuracy vs Epochs):
+The training script saves three artifacts in the current working directory:
+`modelo_tfm.npy`, `scaling_params.npy` and `resultados_entrenamiento.png`.
+
+### 3. Run predictions
+`src/predict.py` can be run with no flags thanks to its defaults, but it also accepts `--data`, `--model` and `--scaling` if you want to override them:
 ```bash
-python src/train.py --train data/train.csv --val data/val.csv --layers 30 24 24 2 --epochs 100 --learning-rate 0.05 --batch-size 16 --optimizer adam
+cd src
+python3 predict.py
 ```
 
-### 3. Making Predictions
-Loads the saved weights and evaluates performance on a separate dataset, outputting binary cross-entropy loss and accuracy metrics:
-```bash
-python src/predict.py --dataset data/val.csv --model saved_model.json
-```
+If you want to evaluate a different CSV or model, pass the flags explicitly. With the defaults, the script loads `../data/data.csv`, `modelo_tfm.npy` and `scaling_params.npy` from `src/`.
+
+### 4. Optional data exploration
+`src/handle_data.py` can be run directly to inspect the cleaned dataset, generate distribution/correlation plots and persist train/validation splits.
 
 ---
 

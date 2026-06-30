@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 
 import numpy as np
 
@@ -16,6 +17,13 @@ def resolve_path(path):
 def load_scaling_params(path):
     data = np.load(path, allow_pickle=True).item()
     return data["mu"], data["sigma"]
+
+
+def require_existing_file(path, description):
+    if not os.path.exists(path):
+        raise FileNotFoundError(
+            f"No se encontró {description} en '{path}'. Ejecuta primero el entrenamiento o pasa una ruta válida."
+        )
 
 
 def load_dataset(path, mu, sigma):
@@ -122,6 +130,10 @@ def run_prediction(data_path, model_path, scaling_path):
     model_path = resolve_path(model_path)
     scaling_path = resolve_path(scaling_path)
 
+    require_existing_file(data_path, "el dataset")
+    require_existing_file(model_path, "el modelo guardado")
+    require_existing_file(scaling_path, "los parámetros de escalado")
+
     mu, sigma = load_scaling_params(scaling_path)
 
     payload = np.load(model_path, allow_pickle=True).item()
@@ -170,7 +182,11 @@ def build_parser():
 
 def main():
     args = build_parser().parse_args()
-    run_prediction(args.data, args.model, args.scaling)
+    try:
+        run_prediction(args.data, args.model, args.scaling)
+    except FileNotFoundError as error:
+        print(error, file=sys.stderr)
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
